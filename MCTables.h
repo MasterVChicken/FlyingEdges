@@ -1,3 +1,6 @@
+#ifndef MCTABLES_H
+#define MCTABLES_H
+
 #pragma once
 #include "cuda_runtime.h"
 
@@ -381,3 +384,5 @@ void initializeTable(const int* h_numTrims, const int* h_edgeUses, const int* h_
 __device__ int getValueFromEdgeUses(int index) {
     return index < 128 ? d_edgeUses[index] : d_edgeUses[127 - (index - 128)];
 }
+
+#endif // MCTABLES_H
