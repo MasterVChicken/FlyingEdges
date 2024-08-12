@@ -28,7 +28,7 @@ int main() {
     float3* d_outputVertices;
     int3* d_outputTriangles;
 
-    // 分配内存
+    // Allocate memory
     checkCudaError(cudaMalloc(&d_scalarField, gridSize.x * gridSize.y * gridSize.z * sizeof(float)), "Allocating d_scalarField");
     checkCudaError(cudaMalloc(&d_vertices, gridSize.x * gridSize.y * gridSize.z * 8 * sizeof(float)), "Allocating d_vertices");
     checkCudaError(cudaMalloc(&d_edgeCases, gridSize.x * gridSize.y * gridSize.z * sizeof(int)), "Allocating d_edgeCases");
@@ -90,3 +90,10 @@ int main() {
 
     return 0;
 }
+
+// To do:
+// 1.
+// To improve performance, we might consider using different stream to run all the pass functions at the same time
+// eg: We can divide the grid into several subgrids and execute 4 pass function on subgrids individually
+// 2. Minimize the initialization time compared to vtk-m
+

@@ -20,7 +20,7 @@ __device__ int computeEdgeCaseNumber(T left, T right, T isoValue) {
 }
 
 template <typename T>
-__global__ void processXEdges(const T *__restrict__ scalarField,
+__global__ void processPass1(const T *__restrict__ scalarField,
                               int *__restrict__ edgeCases,
                               T *__restrict__ trimPositionsLeft,
                               T *__restrict__ trimPositionsRight,

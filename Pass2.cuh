@@ -26,7 +26,7 @@ __device__ int getTriangleCount(int caseNumber) {
 }
 
 template <typename T>
-__global__ void processGridRows(const int* __restrict__ edgeCases,
+__global__ void processPass2(const int* __restrict__ edgeCases,
                                 const T* __restrict__ trimPositionsLeft,
                                 const T* __restrict__ trimPositionsRight,
                                 int* __restrict__ mcCases,

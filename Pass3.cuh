@@ -82,7 +82,7 @@ __global__ void assignIDs(const T* __restrict__ prefixSums, T* __restrict__ ids,
 }
 
 template <typename T>
-void processPass3Manual(const T* d_yEdgeIntersections,
+void processPass3(const T* d_yEdgeIntersections,
                         const T* d_zEdgeIntersections,
                         const T* d_triangleCounts,
                         T* d_yEdgePrefixSums,
