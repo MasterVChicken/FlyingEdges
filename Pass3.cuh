@@ -5,6 +5,7 @@ template <typename T>
 __global__ void blockScan(T* input, T* output, T* blockSums, int n) {
     __shared__ T sharedMem[1024];  
 
+    // Get current thread id and corresponding global id
     int tid = threadIdx.x;
     int gid = blockIdx.x * blockDim.x + tid;
 

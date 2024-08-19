@@ -1,17 +1,21 @@
 #include "MCTables.h"
+#define BLOCK_SIZE 256;
 
 template <typename T>
 __device__ int computeEdgeCaseNumber(T left, T right, T isoValue) {
     int caseNumber = 0;
 
+    // has intersection
     if (left < isoValue && right >= isoValue) {
         caseNumber = 1;  
     }
     
+    // has intersection
     else if (left >= isoValue && right < isoValue) {
         caseNumber = 2;  
     }
    
+    // no intersection
     else {
         caseNumber = 0;  
     }
@@ -19,59 +23,56 @@ __device__ int computeEdgeCaseNumber(T left, T right, T isoValue) {
     return caseNumber;
 }
 
+
+// parameters:
+// scalarField: Input scalar field data for iso-surface extraction
+// edgeCases: Output array storing the edge case number for each edge
+// trimPositionsLeft, trimPositionsRight: Output array for trim positions recording
+// isoValue: iso-value for iso-surface extraction
+// gridSize: kernel function launch parameter(gridSize here refers to grid size of scalars, so in total we can have (gridSize.x - 1) edges)
+
+// Using __restrict__ here to tell compiler to optimize aggressively
 template <typename T>
 __global__ void processPass1(const T *__restrict__ scalarField,
-                              int *__restrict__ edgeCases,
-                              T *__restrict__ trimPositionsLeft,
-                              T *__restrict__ trimPositionsRight,
-                              const T isoValue, const int3 gridSize) {
+                             int *__restrict__ edgeCases,
+                             int *__restrict__ trimPositionsLeft,
+                             int *__restrict__ trimPositionsRight,
+                             const T isoValue, const int3 gridSize) {
+    
+    int j = blockIdx.x * blockDim.x + threadIdx.x;
+    int k = blockIdx.y * blockDim.y + threadIdx.y;
 
-  // get y and z posistions
-  int j = blockIdx.x * blockDim.x + threadIdx.x;
-  int k = blockIdx.y * blockDim.y + threadIdx.y;
+    if (j >= gridSize.y - 1 || k >= gridSize.z - 1) return;
 
-  if (j >= gridSize.y - 1 || k >= gridSize.z - 1)
-    return;
+    int xL = -1;  // left initialized as not found
+    int xR = -1;  // right initialized as not found
 
-  // minimize global memory access
-  __shared__ T sharedScalarField[BLOCK_SIZE];
+    for (int i = 0; i < gridSize.x - 1; ++i) {
 
-  for (int i = 0; i < gridSize.x - 1; ++i) {
+        int edgeIndex = i + j * gridSize.x + k * gridSize.x * gridSize.y;
 
-    int edgeIndex = i + j * gridSize.x + k * gridSize.x * gridSize.y;
-    sharedScalarField[threadIdx.x] = scalarField[edgeIndex];
-    __syncthreads();
+        T val1 = scalarField[edgeIndex];
+        T val2 = scalarField[edgeIndex + 1];
 
-    T val1 = sharedScalarField[threadIdx.x];
-    T val2 = (i < gridSize.x - 2) ? scalarField[edgeIndex + 1]
-                                  : scalarField[edgeIndex];
+        if ((val1 < isoValue && val2 >= isoValue) ||
+            (val1 >= isoValue && val2 < isoValue)) {
 
-    T xL = static_cast<T>(i);
-    T xR = static_cast<T>(i + 1);
-    int intersectionCount = 0;
+            // get first left as leftest
+            if (xL == -1) {
+                xL = i;
+            }
 
-    if ((val1 < isoValue && val2 >= isoValue) ||
-        (val1 >= isoValue && val2 < isoValue)) {
-      edgeCases[edgeIndex] = computeEdgeCaseNumber(val1, val2, isoValue);
-      intersectionCount++;
+            // get last right as rightest
+            xR = i + 1;
 
-      if (val1 < isoValue) {
-        xL = static_cast<T>(i) + (isoValue - val1) / (val2 - val1);
-      }
-      if (val2 < isoValue) {
-        xR = static_cast<T>(i + 1) - (isoValue - val2) / (val1 - val2);
-      }
-
-      if (i == gridSize.x - 2 ||
-          (scalarField[edgeIndex + 1] >= isoValue && val2 < isoValue)) {
-        break;
-      }
-    } else {
-      edgeCases[edgeIndex] = 0;
+            edgeCases[edgeIndex] = computeEdgeCaseNumber(val1, val2, isoValue);
+        } else {
+            edgeCases[edgeIndex] = 0;
+        }
     }
 
-    trimPositionsLeft[edgeIndex] = xL;
-    trimPositionsRight[edgeIndex] = xR;
-    __syncthreads();
-  }
+    trimPositionsLeft[j + k * gridSize.y] = (xL == -1) ? 0 : xL;
+    trimPositionsRight[j + k * gridSize.y] = (xR == -1) ? 0 : xR;
 }
+
+
